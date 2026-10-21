@@ -227,7 +227,8 @@ export function createWikiRoutes(deps: WikiRouteDeps): Hono {
 
   // ── id-only ──
 
-  app.post("/raw/ls", async (c) => {
+  // /raw/list 是 /raw/ls 的兼容别名（同租户校验、同只读语义）。
+  app.on("POST", ["/raw/ls", "/raw/list"], async (c) => {
     const body = await c.req.json<Record<string, unknown>>();
     const serviceId = c.req.header("x-tdai-service-id");
     if (!isValidIdSegment(serviceId)) return c.json(wrapError(400, "x-tdai-service-id header is required"), 400);

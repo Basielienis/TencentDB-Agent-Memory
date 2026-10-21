@@ -168,7 +168,13 @@ export function withWriteDb<T>(wikiDir: string, fn: (db: Database.Database) => T
   applyPragmas(db);
   try {
     const out = db.transaction(fn)(db);
-    db.pragma("wal_checkpoint(TRUNCATE)");
+    // 事务已提交到 WAL。checkpoint 失败只能推迟合并，绝不能让调用方把已成功的
+    // 写入当失败（否则上层会回滚已落盘文件、误报 ingest 失败）。
+    try {
+      db.pragma("wal_checkpoint(TRUNCATE)");
+    } catch (err) {
+      console.warn(`[wiki-index] checkpoint deferred for ${wikiDir}: ${String(err)}`);
+    }
     return out;
   } finally {
     db.close();
